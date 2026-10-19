@@ -2,7 +2,14 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from agents.memory_agent import MemoryAgent
 from memory.memory_manager import MemoryManager
+from memory.redis_client import RedisClient
 from core.session import SessionState
+
+@pytest.fixture(autouse=True)
+def reset_redis_offline():
+    RedisClient._is_offline = False
+    yield
+    RedisClient._is_offline = False
 
 @pytest.fixture
 def mock_redis():

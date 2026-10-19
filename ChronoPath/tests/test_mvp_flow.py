@@ -1,15 +1,15 @@
 import unittest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock
 
 from agents.supervisor import SupervisorAgent
 
 
 class MvpFlowTest(unittest.TestCase):
-    @patch("agents.location_agent.genai.GenerativeModel")
+    @patch("agents.location_agent.genai.Client")
     @patch("agents.location_agent.reverse_geocode")
     @patch("agents.location_agent.heritage_lookup")
     @patch("agents.location_agent.fetch_history")
-    def test_success_condition_for_shaniwar_wada(self, mock_history, mock_heritage, mock_geo, mock_model):
+    def test_success_condition_for_shaniwar_wada(self, mock_history, mock_heritage, mock_geo, mock_client_cls):
         import asyncio
         async def mock_geo_resp(*args):
             return {"city": "Pune", "state": "MH", "country": "IN", "lat": 18.5196, "lng": 73.8553, "display_name": "Pune"}
@@ -23,9 +23,21 @@ class MvpFlowTest(unittest.TestCase):
         mock_history.side_effect = mock_history_resp
 
         # Mock the Router LLM to force fallback to fetch_history
-        mock_model_instance = AsyncMock()
-        mock_model_instance.generate_content_async.return_value.text = '{"is_famous": false}'
-        mock_model.return_value = mock_model_instance
+        mock_client = MagicMock()
+        mock_aio_response = MagicMock()
+        mock_aio_response.text = '{"is_famous": false}'
+        mock_client.aio.models.generate_content = AsyncMock(return_value=mock_aio_response)
+
+        def mock_generate_content(*args, **kwargs):
+            contents = kwargs.get("contents", "")
+            if isinstance(contents, str) and "Historical Editor" in contents:
+                return MagicMock(text='{"pass": true, "score": 10, "feedback": ""}')
+            if isinstance(contents, str) and "travel assistant" in contents:
+                return MagicMock(text='[]')
+            return MagicMock(text="Welcome to Shaniwar Wada. This historic seat of the Peshwas...")
+
+        mock_client.models.generate_content.side_effect = mock_generate_content
+        mock_client_cls.return_value = mock_client
 
         response = SupervisorAgent().run(
             {

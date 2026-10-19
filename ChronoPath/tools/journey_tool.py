@@ -167,9 +167,12 @@ async def get_last_story(user_id) -> str | None:
     return None
 
 async def _get_embedding(text: str) -> list[float]:
-    api_key = os.getenv("GOOGLE_API_KEY")
-    client = genai.Client(api_key=api_key) if api_key else genai.Client()
     try:
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            logger.warning("GOOGLE_API_KEY is not set. Skipping embedding generation.")
+            return []
+        client = genai.Client(api_key=api_key)
         # Use a lightweight embedding model
         result = client.models.embed_content(
             model="gemini-embedding-2",

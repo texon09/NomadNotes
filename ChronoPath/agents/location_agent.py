@@ -26,28 +26,30 @@ class LocationAgent:
         qualified_place_name = f"{place_name}, {state}, {country}".strip(', ')
         
         # Agentic RAG Router
-        api_key = os.getenv("GOOGLE_API_KEY")
-        client = genai.Client(api_key=api_key) if api_key else genai.Client()
-            
-        config = types.GenerateContentConfig(response_mime_type="application/json")
-        router_prompt = (
-            f"Do you have deep, accurate historical knowledge about '{qualified_place_name}'? "
-            f"If it is a famous landmark, respond with 'is_famous': true and provide a 'context' and a list of 'facts'. "
-            f"If it is obscure, respond with 'is_famous': false. "
-            f"Return JSON strictly with keys: 'is_famous' (boolean), 'context' (string), 'facts' (list of strings)."
-        )
-        
+        router_decision = {"is_famous": False}
         try:
-            creds = os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
-            response = await client.aio.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=router_prompt,
-                config=config
-            )
-            if creds is not None:
-                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds
+            api_key = os.getenv("GOOGLE_API_KEY")
+            client = genai.Client(api_key=api_key) if api_key else genai.Client()
                 
-            router_decision = json.loads(response.text)
+            config = types.GenerateContentConfig(response_mime_type="application/json")
+            router_prompt = (
+                f"Do you have deep, accurate historical knowledge about '{qualified_place_name}'? "
+                f"If it is a famous landmark, respond with 'is_famous': true and provide a 'context' and a list of 'facts'. "
+                f"If it is obscure, respond with 'is_famous': false. "
+                f"Return JSON strictly with keys: 'is_famous' (boolean), 'context' (string), 'facts' (list of strings)."
+            )
+            
+            creds = os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
+            try:
+                response = await client.aio.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=router_prompt,
+                    config=config
+                )
+                router_decision = json.loads(response.text)
+            finally:
+                if creds is not None:
+                    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds
         except Exception as e:
             print(f"LocationAgent Gemini Router failed: {type(e).__name__} - {e}")
             router_decision = {"is_famous": False}
