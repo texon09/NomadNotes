@@ -228,6 +228,7 @@ media/visual_*
 # Sensitive keys and credentials
 *.json
 !users_db.json
+!vercel.json
 
 # Local virtual environments
 venv*/

@@ -1,7 +1,9 @@
 import axios from "axios";
 import { GenerateRequest, GenerateResponse, Journey, Profile } from "../types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === "production" ? "/api" : "http://localhost:8000");
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
