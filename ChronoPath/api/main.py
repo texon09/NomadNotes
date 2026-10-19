@@ -47,6 +47,7 @@ app.add_middleware(
         "https://chronopath-ai.vercel.app", 
         "https://nomadnotes.vercel.app"
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -162,7 +163,12 @@ async def get_index():
         return FileResponse(index_path)
     if os.path.exists("static/index.html"):
         return FileResponse("static/index.html")
-    raise HTTPException(status_code=404, detail="Frontend index.html not found.")
+    return {
+        "status": "ok",
+        "app": settings.app_name,
+        "message": "Nomad Notes backend is running.",
+        "docs": "/docs",
+    }
 
 @app.get("/static/{path:path}")
 async def get_static(path: str):
